@@ -2,9 +2,9 @@
 
 simple tool to emulate device communication
 
-waiting on port 5000 and sending echo packet each second, if gets "ko"* it will starts data stream 
+waiting on port 5000 and sending echo packet each second, if gets "ko"\* it will starts data stream 
 600B data packet 20 times in sec (12B of data acc-xyz gyro-xyz, grouped by 50 samples, each 0.05s)
-stops on "ok"*
+stops on "ok"\*
 
 *reversed endian
 
