@@ -8,7 +8,18 @@ stops on "ok"*
 
 *reversed endian
 
-docu from @lakesi
+## DEVICE EMULATOR ##
+how to run: 
+
+1. clone
+2. npm/yarn install
+3. node device.js
+
+thats it
+
+
+
+##docu from @lakesi ##
 
 [WDP_protocol] wimo device protocol:
 
