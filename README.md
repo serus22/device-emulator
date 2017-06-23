@@ -19,7 +19,7 @@ thats it
 
 
 
-##docu from @lakesi ##
+##DOCS from @lakesi ##
 
 [WDP_protocol] wimo device protocol:
 
