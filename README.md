@@ -17,6 +17,8 @@ how to run:
 
 thats it
 
+** check target IP bcs its hardcoded for now
+
 
 
 ##DOCS from @lakesi ##
