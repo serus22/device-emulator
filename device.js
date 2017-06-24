@@ -5,18 +5,13 @@ const server = dgram.createSocket('udp4');
 const zlib = require('zlib');
 
 let run = false;
-let packet = [0,1,2,3,4,5,6,7,8,9,10,11];
+let addBt = false;
+let addId = false;
+let dataPacket = 'aa11aa22aa33ee11ee22ee33'.repeat(50);
+let deviceId = 'eeff11cc';
+let deviceBt = 'f1f1';
 
-let batch = [];
-for(var i = 0; i < 50; i++) {
-  batch = batch.concat(packet);
-}
-
-function getRandomInt(min, max) {
-  min = Math.ceil(min);
-  max = Math.floor(max);
-  return Math.floor(Math.random() * (max - min)) + min;
-}
+let IP = '192.168.1.102';
 
 server.on('error', err => {
   console.log(`server error:\n${err.stack}`);
@@ -24,20 +19,33 @@ server.on('error', err => {
 });
 
 server.on('message', (msg, rinfo) => {
+
   console.log(`server got: ${msg} from ${rinfo.address}:${rinfo.port}`);
 
   if (msg.toString() === 'ko') {
-    console.log(`START`);
+    console.log(`START ${rinfo.address}`);
+    IP = rinfo.address;
     run = true;
   } else if(msg.toString() === 'ok') {
     console.log(`STOP`);
     run = false;
   } else if(msg.toString() === 'tb') {
-    server.send(new Buffer('cccc', 'hex'), 0, 4, 5000, rinfo.address);
+    if (run) {
+      server.send(new Buffer(deviceTmp, 'hex'), 0, 4, 5000, rinfo.address);
+    } else {
+      addBt = true;
+    }
+  } else if(msg.toString() === 'di') {
+    if(run) {
+      server.send(new Buffer(deviceId, 'hex'), 0, 4, 5000, rinfo.address);
+    } else {
+      addId = true;
+    }
   } else {
     server.send(new Buffer('ee', 'hex'), 0, 4, 5000, rinfo.address);
     console.log(`UNKNOWN ${msg.toString()}`);
   }
+
 });
 
 server.on('listening', () => {
@@ -48,16 +56,19 @@ server.on('listening', () => {
 server.bind(5000);
 
 let round = 0;
-let msg = new Buffer(batch);
-
-let IP = '192.168.1.102';
 
 setInterval(() => {
   if(run) {
-    server.send(msg, 0, 600, 5000, ip);
+    let data = dataPacket;
+    if(addBt) {
+      data += deviceBt;
+    } else if(addId) {
+      data += deviceId;
+    }
+    server.send(new Buffer(data, 'hex'), 0, 600, 5000, ip);
   } else if(! run && round%50 === 0) {
-    console.log(`${round}. send`);
-    server.send(new Buffer('eeff11cc', 'hex'), 0, 4, 5000, IP);
+    console.log(`${round/50} id sent`);
+    server.send(deviceId, 0, 4, 5000, IP);
   }
   round++;
 }, 20);
