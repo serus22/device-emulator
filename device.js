@@ -8,10 +8,10 @@ let run = false;
 let addBt = false;
 let addId = false;
 let dataPacket = 'aa11aa22aa33ee11ee22ee33'.repeat(50);
-let deviceId = 'eeff11cc';
+let deviceId = 'abcdef01';
 let deviceBt = 'f1f1';
 
-let IP = '192.168.1.102';
+let IP = '192.168.1.105';
 
 server.on('error', err => {
   console.log(`server error:\n${err.stack}`);
@@ -31,18 +31,18 @@ server.on('message', (msg, rinfo) => {
     run = false;
   } else if(msg.toString() === 'tb') {
     if (run) {
-      server.send(new Buffer(deviceTmp, 'hex'), 0, 4, 5000, rinfo.address);
+      server.send(new Buffer(deviceBt, 'hex'), 0, deviceBt.length, 5000 / 2, rinfo.address);
     } else {
       addBt = true;
     }
   } else if(msg.toString() === 'di') {
     if(run) {
-      server.send(new Buffer(deviceId, 'hex'), 0, 4, 5000, rinfo.address);
+      server.send(new Buffer(deviceId, 'hex'), 0, deviceId.length / 2, 5000, rinfo.address);
     } else {
       addId = true;
     }
   } else {
-    server.send(new Buffer('ee', 'hex'), 0, 4, 5000, rinfo.address);
+    server.send(new Buffer('ee', 'hex'), 0, 1, 5000, rinfo.address);
     console.log(`UNKNOWN ${msg.toString()}`);
   }
 
@@ -61,14 +61,14 @@ setInterval(() => {
   if(run) {
     let data = dataPacket;
     if(addBt) {
-      data += deviceBt;
+      //data += deviceBt;
     } else if(addId) {
-      data += deviceId;
+      //data += deviceId;
     }
-    server.send(new Buffer(data, 'hex'), 0, 600, 5000, ip);
+    server.send(new Buffer(data, 'hex'), 0, data.length / 2, 5000, IP);
   } else if(! run && round%50 === 0) {
     console.log(`${round/50} id sent`);
-    server.send(deviceId, 0, 4, 5000, IP);
+    server.send(new Buffer(deviceId, 'hex'), 0, deviceId.length / 2, 5000, IP);
   }
   round++;
 }, 20);
