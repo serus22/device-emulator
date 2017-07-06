@@ -11,7 +11,7 @@ let dataPacket = 'aa11aa22aa33ee11ee22ee33'.repeat(50);
 let deviceId = 'abcdef01';
 let deviceBt = 'f1f1';
 
-let IP = '192.168.1.105';
+let IP = '192.168.1.106';
 
 server.on('error', err => {
   console.log(`server error:\n${err.stack}`);
@@ -20,7 +20,7 @@ server.on('error', err => {
 
 server.on('message', (msg, rinfo) => {
 
-  console.log(`server got: ${msg} from ${rinfo.address}:${rinfo.port}`);
+  console.log(`${(new Date()).toISOString().substr(11,8)} server got: ${msg} from ${rinfo.address}:${rinfo.port}`);
 
   if (msg.toString() === 'ko') {
     console.log(`START ${rinfo.address}`);
@@ -71,4 +71,4 @@ setInterval(() => {
     server.send(new Buffer(deviceId, 'hex'), 0, deviceId.length / 2, 5000, IP);
   }
   round++;
-}, 20);
+}, 50);
