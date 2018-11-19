@@ -8,8 +8,8 @@ let run = false;
 let addBt = false;
 let addId = false;
 let dataPacket = 'aa11aa22aa33ee11ee22ee33'.repeat(50);
-let deviceId = 'abcdef01';
-let deviceBt = 'f1f1';
+let deviceId = 'CC8040'; // deviceID
+let deviceBt = 'f1f1'; // battery level
 
 let IP = '192.168.1.106';
 
