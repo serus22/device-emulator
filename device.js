@@ -2,73 +2,117 @@
 
 const dgram = require('dgram');
 const server = dgram.createSocket('udp4');
-const zlib = require('zlib');
 
-let run = false;
-let addBt = false;
-let addId = false;
-let dataPacket = 'aa11aa22aa33ee11ee22ee33'.repeat(50);
-let deviceId = 'CC8040'; // deviceID
-let deviceBt = 'f1f1'; // battery level
+// -----------------------------------------------------------------------------
 
-let IP = '192.168.1.106';
+const ACC_TMP_GYR = "01020336040506";
+const DEVICE_ID = 'CC8040'; // deviceID
+const BT_DATA = 'aa'; // battery level
+const MAG = "070809";
 
-server.on('error', err => {
-  console.log(`server error:\n${err.stack}`);
-  server.close();
-});
+const DATA_PACKET = DEVICE_ID + ACC_TMP_GYR + MAG + ACC_TMP_GYR.repeat(49);
 
-server.on('message', (msg, rinfo) => {
 
-  console.log(`${(new Date()).toISOString().substr(11,8)} server got: ${msg} from ${rinfo.address}:${rinfo.port}`);
+const PORT = 54321;
+const COMMANDS = {
+  ok: 'ko',
+  ko: 'ok',
+  id: 'di',
+  bt: 'tb'
+};
 
-  if (msg.toString() === 'ko') {
-    console.log(`START ${rinfo.address}`);
-    IP = rinfo.address;
-    run = true;
-  } else if(msg.toString() === 'ok') {
-    console.log(`STOP`);
-    run = false;
-  } else if(msg.toString() === 'tb') {
-    if (run) {
-      server.send(new Buffer(deviceBt, 'hex'), 0, deviceBt.length, 5000 / 2, rinfo.address);
-    } else {
-      addBt = true;
-    }
-  } else if(msg.toString() === 'di') {
-    if(run) {
-      server.send(new Buffer(deviceId, 'hex'), 0, deviceId.length / 2, 5000, rinfo.address);
-    } else {
-      addId = true;
-    }
-  } else {
-    server.send(new Buffer('ee', 'hex'), 0, 1, 5000, rinfo.address);
-    console.log(`UNKNOWN ${msg.toString()}`);
+let SEND_DATA = null;
+let LOOP_COUNT = 0;
+let LAST_CMD = null;
+
+// -----------------------------------------------------------------------------
+
+function messageHandler (msg, rinfo) {
+
+  let val = msg.toString();
+
+  if (val.length !== 2) {
+    return;
   }
 
-});
+  LAST_CMD = Date.now();
 
-server.on('listening', () => {
+  let TARGET = rinfo.address;
+  
+  switch(val) {
+    case COMMANDS.ok:
+      console.log(`START ${TARGET}`);
+      SEND_DATA = TARGET;
+      break;
+      
+    case COMMANDS.ko:
+      console.log(`STOP`);
+      SEND_DATA = null;
+      break;
+    
+    case COMMANDS.bt:
+      if (SEND_DATA) {
+        console.log(`SEND BT`);
+        // send
+        let msg = Buffer.from("bt" + BT_DATA);
+        server.send(msg, PORT, TARGET);
+      }
+      break;
+    
+    case COMMANDS.id:
+      if(SEND_DATA) {
+        // send
+        let msg = Buffer.from("id" + DEVICE_ID);
+        console.log(`SEND ID`);
+        server.send(msg, PORT, TARGET);
+      }
+      break;
+
+    default:
+        server.send(new Buffer('ee', 'hex'), 0, 1, PORT, TARGET);
+        console.log(`UNKNOWN ${val}`);
+
+  }
+}
+
+// -----------------------------------------------------------------------------
+
+function started () {
   var address = server.address();
   console.log(`server listening ${address.address}:${address.port}`);
-});
+}
 
-server.bind(5000);
+// -----------------------------------------------------------------------------
 
-let round = 0;
+function handleError(err) {
+  console.log(`server error:\n${err.stack}`);
+  server.close();
+}
+
+// -----------------------------------------------------------------------------
+
+server.on('message', messageHandler);
+server.on('error', handleError);
+server.on('listening', started);
+server.bind(PORT);
+
+// -----------------------------------------------------------------------------
+
 
 setInterval(() => {
-  if(run) {
-    let data = dataPacket;
-    if(addBt) {
-      //data += deviceBt;
-    } else if(addId) {
-      //data += deviceId;
+  if(SEND_DATA) {
+    if ((Date.now() - LAST_CMD) - 180000) { // after 3min of inactivity - stop
+      SEND_DATA = null;
+      return;
     }
-    server.send(new Buffer(data, 'hex'), 0, data.length / 2, 5000, IP);
-  } else if(! run && round%50 === 0) {
-    console.log(`${round/50} id sent`);
-    server.send(new Buffer(deviceId, 'hex'), 0, deviceId.length / 2, 5000, IP);
+    let msg  = Buffer.from(DATA_PACKET);
+    server.send(msg, PORT, SEND_DATA);
+  } else if(! SEND_DATA && ! (LOOP_COUNT % 50)) {
+    LOOP_COUNT = 0;
+    console.log(`id sent`);
+    let msg = Buffer.from("id" + DEVICE_ID);
+    server.send(msg, PORT, SEND_DATA);
   }
-  round++;
+  LOOP_COUNT++;
 }, 50);
+

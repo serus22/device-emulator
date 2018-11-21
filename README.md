@@ -1,65 +1,67 @@
 # DEVICE EMULATOR
 
-simple tool to emulate device communication
+ESP motion device emulator
 
-waiting on port 5000 and sending echo packet each second, if gets "ko"\* it will starts data stream 
-600B data packet 20 times in sec (12B of data acc-xyz gyro-xyz, grouped by 50 samples, each 0.05s)
-stops on "ok"\*
-
-*reversed endian
-
-## DEVICE EMULATOR
-how to run: 
+## Run
 
 1. `clone`
 2. `yarn install`
-3. `node device.js`
+3. `yarn start`
 
-thats it
+# Device State diagram
 
-** check target IP bcs its hardcoded for now
+![HA](./state-diagram.png)
+
+- `Timer1` - each N seconds sends "ID" packet with ESP Unique ID
+- `Timer2` - it handle automatic shutdown, any received data / cmd will reset timer
+
+(Emulator will never reach "Not connected" and "Off" state)
 
 
-## Protocol:
+# Protocol:
+
+Device comunicates over UDP socket, it respond always to IP which sent CMD.
+
+comunication port is `54321`
+
+# Comands 
+
+response to command should be always comand name + data
+
+| Cmd                  | Expected echo      |
+|----------------------|--------------------|
+| "bt" [`0x6F`,`0x6B`] | "bt" + `2B int_16` |
+| "id" [`0x6B`,`0x6F`] | "id" + `6B` id     |
+| "ko" [`0x62`,`0x74`] | stop data          |
+| "ok" [`0x69`,`0x64`] | start data         |
+
+- any other unexpected command will end with `ee` 2B
+
+> Data Packet
+>> sent each 50ms with 50samples, so its 1000 samples per sec. + additional Magnetometer data sampled to 20 per sec.
+
+|DEVICE_ID|ACC|TMP|GYR|MAG| + 49x ACC + TMP + GYR|SUM|
+|-|-|-|-|-|-|-|
+|6B|6B|2B|6B|6B|**14B** (6B + 2B + 6B)|`712B`|
+
+> ACC / GYR / MAG
+
+|X|Y|Z|SUM|
+|-|-|-|-|
+|2B|2B|2B|`6B`|
+
+> TMP / BT 
+
+|INT_16|
+|-|
+|`2B`|
 
 
-- 2B (size) = command packet
-- 4B = device_id packet (example: 13417383)
-- 12B = data packet
-- another size = error string data (debug purpose)
+# Units 
 
-# Comands Commands (device will response by same data):
+- `ACC` full scale = `16G`
+- `GYR` full scale = `2000dps`
+- `MAG` full scale = `4800µT`
 
-- `ok` [`0x6F`,`0x6B`] 
-  - start data transfer (1x per minute to hold device connected)
-- `ko` [`0x6B`,`0x6F`] 
-  - stop data transfer (device will turn off after 'timeout' time)
-- `bt` [`0x62`,`0x74`] 
-  - get battery level ( + 2B response with batery level)
-- `id` [`0x69`,`0x64`]
-  - get unique device_ID ( + 4B response with batery level)
-
-# Response
-
-#### BT response
-
-| 4B   |
-|------|
-| lvl  |
-
-#### ID response
-
-| 6B   | 4B   |
-|------|------|
-| id   | lvl  |
-
-#### Data Packet 
-
-  | 2B   | 2B   | 2B   | 2B   | 2B   | 2B   |
-  |------|------|------|------|------|------| 
-  | accX | accY | accZ | gyrX | gyrY | gyrZ |
-
-# State diagram
-
-![HA](/state-diagram.png)
-
+# P.S. Take care of Endian
+- bad command returns `"ee"`

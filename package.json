@@ -6,5 +6,8 @@
   "dependencies": {
     "compress-buffer": "^1.2.2",
     "zlib": "^1.0.5"
+  },
+  "scripts": {
+    "start": "node ./device.js"
   }
 }
