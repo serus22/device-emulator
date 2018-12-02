@@ -28,7 +28,7 @@ comunication port is `54321`
 
 response to command should be always comand name + data
 
-| Cmd                  | Expected echo      |
+| Cmd                  | Expected response  |
 |----------------------|--------------------|
 | "bt" [`0x6F`,`0x6B`] | "bt" + `2B int_16` |
 | "id" [`0x6B`,`0x6F`] | "id" + `6B` id     |
